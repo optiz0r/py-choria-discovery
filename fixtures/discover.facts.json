@@ -1,0 +1,13 @@
+{
+  "$schema": "https://choria.io/schemas/choria/discovery/v1/external_request.json",
+  "protocol": "io.choria.choria.discovery.v1.external_request",
+  "filter": {
+    "fact": [{"fact": "kernel", "operator": "==","value": "linux"}],
+    "cf_class": [],
+    "agent": [],
+    "compound": [],
+    "identity": []
+  },
+  "collective": "mcollective",
+  "timeout": 2
+}

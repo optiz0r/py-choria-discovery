@@ -1,0 +1,139 @@
+#!/usr/bin/python3
+import re
+
+from choria_external.dispatcher import dispatch
+from choria_discovery.discovery import Discovery
+
+
+class StaticDiscovery(Discovery):
+
+    class NotMatched(Exception):
+        """ Raised when a node doesn't match a single filter
+        """
+        pass
+
+    # A dummy list of metadata
+    # A real discovery plugin would read this in from an inventory file
+    # or query some database
+    nodes = [{
+        'identity': 'foo.example.com',
+        'classes': ['base', 'one'],
+        'facts': {
+            'kernel': 'linux',
+        },
+        'agents': ['parrot'],
+        'collective': 'mcollective',
+    }, {
+        'identity': 'bar.example.com',
+        'classes': ['base', 'two'],
+        'facts': {
+            'kernel': 'windows',
+        },
+        'agents': ['parrot'],
+        'collective': 'mcollective',
+    }]
+
+    def discover(self):
+        """ Populates the reply with a list of nodes from the static nodes list
+            which match the discovery criteria
+        """
+        for node in self.nodes:
+            # Run all the filters, if all of them pass without raising an exception
+            # add the node to the reply nodes list
+            try:
+                self.filter_collective(node, self.request.collective)
+
+                for facts in self.request.filter["fact"]:
+                    self.filter_facts(node, facts["fact"], facts["operator"], facts["value"])
+
+                for class_name in self.request.filter["cf_class"]:
+                    self.filter_class(node, class_name)
+
+                for agent_name in self.request.filter["agent"]:
+                    self.filter_agent(node, agent_name)
+
+                for compound in self.request.filter["compound"]:
+                    self.filter_compound(node, compound)
+
+                for identity in self.request.filter["identity"]:
+                    self.filter_identity(node, identity)
+
+                # All tests passed
+                self.reply.nodes.append(node["identity"])
+
+            except StaticDiscovery.NotMatched:
+                # Node failed a test, don't add it to the reply nodes list
+                pass
+            except Exception as e:
+                # Something else went wrong, and we didn't handle it gracefully
+                # mark the request as failed
+                self.reply.fail(str(e))
+
+    @staticmethod
+    def filter_facts(node, fact, operator, value):
+        """ Raises an exception if the node does not match the fact filter
+        :param node: dict[str,any] The node to be checked
+        :param fact: str The fact name to check
+        :param operator: str The operator to use
+        :param value: str The value to check against
+        :raises NotImplemented
+        :raises NotMatched
+        """
+        if operator != "==":
+            raise NotImplemented("Operator {0} has not been implemented".format(operator))
+        if fact not in node["facts"]:
+            raise StaticDiscovery.NotMatched()
+        if node["facts"][fact] != value:
+            raise StaticDiscovery.NotMatched()
+        return True
+
+    @staticmethod
+    def filter_class(node, class_name):
+        """ Raises an exceptionif the node does not have the given class
+        :param node: dict[str,any] The node to be checked
+        :param class_name: str The class name to match
+        :raises NotMatched
+        """
+        if class_name not in node["classes"]:
+            raise StaticDiscovery.NotMatched()
+
+    @staticmethod
+    def filter_agent(node, agent_name):
+        """ Raises an exception if the node does not have the given agent
+        :param node: dict[str,any] The node to be checked
+        :param agent_name: str The agent name to match
+        :raises NotMatched
+        """
+        return agent_name in node["agents"]
+
+    @staticmethod
+    def filter_compound(node, compound):
+        raise NotImplemented('Compound filters are not implemented')
+
+    @staticmethod
+    def filter_identity(node, identity):
+        """ Raises an exception if the node does not match the given identity
+        :param node: dict[str, any] The node to be checked
+        :param identity: str The identity to be checked
+        :raises NotMatched
+        """
+        if identity.startswith('/') and identity.endswith('/'):
+            if not re.match(identity[1:-1], node['identity']):
+                raise StaticDiscovery.NotMatched()
+        else:
+            if node['identity'] != identity:
+                raise StaticDiscovery.NotMatched()
+
+    @staticmethod
+    def filter_collective(node, collective):
+        """ Raises an exception if node does not match the given collective
+        :param node: dict[str,any] The node to be checked
+        :param collective: str The collective name to be checked
+        :raises NotMatched
+        """
+        if node["collective"] != collective:
+            raise StaticDiscovery.NotMatched()
+
+
+if __name__ == '__main__':
+    dispatch(StaticDiscovery)

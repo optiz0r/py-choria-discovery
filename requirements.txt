@@ -1,0 +1,4 @@
+jsonschema
+mock
+py-choria-external
+wheel
