@@ -9,5 +9,6 @@
     "identity": []
   },
   "collective": "mcollective",
-  "timeout": 2
+  "timeout": 2,
+  "options": {}
 }

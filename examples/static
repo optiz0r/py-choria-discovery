@@ -69,6 +69,12 @@ class StaticDiscovery(Discovery):
                 # mark the request as failed
                 self.reply.fail(str(e))
 
+        # Example usage of the discover-options
+        # limit the number of nodes returned to some arbitrary number provided by
+        # --dm external --do limit=1
+        if 'limit' in self.request.options:
+            self.reply.nodes = self.reply.nodes[0:int(self.request.options['limit'])]
+
     @staticmethod
     def filter_facts(node, fact, operator, value):
         """ Raises an exception if the node does not match the fact filter
