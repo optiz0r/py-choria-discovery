@@ -25,10 +25,13 @@ class DiscoveryReply(Reply):
     def to_json(self):
         if self.successful():
             message = json.dumps({
+                'protocol': self._protocol,
                 'nodes': self.nodes,
             })
         else:
             message = json.dumps({
+                'protocol': self._protocol,
+                'nodes': [],
                 'error': self.error,
             })
         return message
